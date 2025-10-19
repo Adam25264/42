@@ -1,0 +1,2354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SmartTendance - Student Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <!-- Stripe.js for card payments -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <!-- Paystack Inline JS -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        :root {
+            --primary: #44ff44;
+            --secondary: #3366cc;
+            --danger: #ff4444;
+            --warning: #ffaa00;
+            --success: #10b981;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --light: #f5f5f5;
+            --card-bg: #1a1a1a;
+            --card-border: #333;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+        
+        body {
+            background: var(--dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+            padding-bottom: 80px;
+        }
+        
+        body.light-mode {
+            --primary: #2563eb;
+            --secondary: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --dark: #f8fafc;
+            --darker: #e2e8f0;
+            --light: #ffffff;
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .app-container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding-bottom: 80px;
+        }
+        
+        /* Enhanced Header for Mobile */
+        .header {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--card-bg) 100%);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        
+        .header-content {
+            flex: 1;
+            text-align: left;
+        }
+        
+        .header h1 {
+            color: var(--primary);
+            font-size: 20px;
+            margin-bottom: 2px;
+            text-align: left;
+        }
+        
+        .student-info {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .header-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .theme-toggle, .settings-toggle, .new-course-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+        }
+        
+        .theme-toggle:hover, .settings-toggle:hover, .new-course-toggle:hover {
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        /* Enhanced Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            padding: 8px 5px;
+            z-index: 1000;
+        }
+        
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 5px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 10px;
+            min-height: 50px;
+        }
+        
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(68, 255, 68, 0.1);
+        }
+        
+        .nav-item i {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+        
+        .nav-item .nav-label {
+            font-size: 10px;
+            font-weight: 500;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            padding: 15px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Improved Scanner Section for Mobile */
+        .scanner-section {
+            text-align: center;
+        }
+        
+        .scanner-box {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid var(--card-border);
+            box-shadow: var(--shadow);
+        }
+        
+        .camera-container {
+            width: 100%;
+            max-width: 300px;
+            height: 280px;
+            margin: 0 auto 15px;
+            border: 3px solid var(--primary);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            position: relative;
+        }
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .scan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: var(--primary);
+            animation: scan 2s infinite;
+            box-shadow: 0 0 10px var(--primary);
+        }
+        
+        @keyframes scan {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+        
+        .scanner-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn:disabled {
+            background: var(--text-secondary);
+            color: var(--text-primary);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background: var(--secondary);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+        }
+        
+        .btn-small {
+            padding: 10px 12px;
+            font-size: 13px;
+            width: auto;
+            margin: 2px;
+        }
+        
+        /* Enhanced Subscription Status Banner for Mobile */
+        .subscription-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 12px 0;
+            text-align: center;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-left: 5px solid #4CAF50;
+        }
+        
+        .subscription-banner.expired {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            border-left: 5px solid #ff4444;
+        }
+        
+        .banner-content {
+            flex: 1;
+            text-align: left;
+        }
+        
+        .banner-content h3 {
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        
+        .banner-content p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        /* Trial Info Banner */
+        .trial-banner {
+            background: linear-gradient(135deg, #000000 0%, #333333 50%, #ffffff 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 12px 0;
+            text-align: center;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-left: 5px solid #ffffff;
+        }
+        
+        /* Enhanced Tabular Attendance History for Mobile */
+        .attendance-table-container {
+            margin-top: 15px;
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            font-size: 12px;
+            min-width: 500px;
+        }
+        
+        .attendance-table th {
+            background: var(--darker);
+            color: var(--text-primary);
+            font-weight: bold;
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 2px solid var(--card-border);
+            border-right: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .attendance-table th:last-child {
+            border-right: none;
+        }
+        
+        .attendance-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--card-border);
+            border-right: 1px solid var(--card-border);
+            color: var(--text-secondary);
+        }
+        
+        .attendance-table td:last-child {
+            border-right: none;
+        }
+        
+        .attendance-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .attendance-table tr:hover {
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .status-present {
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        .status-absent {
+            color: var(--danger);
+            font-weight: bold;
+        }
+        
+        .action-cell {
+            text-align: center;
+        }
+        
+        .delete-record-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+        
+        .delete-record-btn:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+        
+        .history-header {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .history-title-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-select {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px;
+            border-radius: 8px;
+            background: var(--darker);
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
+            font-size: 13px;
+        }
+        
+        /* Enhanced Summary Table for Mobile */
+        .summary-section {
+            margin-bottom: 20px;
+        }
+        
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            font-size: 13px;
+        }
+        
+        .summary-table th, .summary-table td {
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+            border-right: 1px solid var(--card-border);
+        }
+        
+        .summary-table th:last-child, .summary-table td:last-child {
+            border-right: none;
+        }
+        
+        .summary-table th {
+            background: var(--darker);
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+        
+        .summary-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .summary-table tr:hover {
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        /* Enhanced Subscription Section for Mobile */
+        .subscription-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid var(--primary);
+            box-shadow: var(--shadow);
+        }
+        
+        .subscription-info {
+            margin: 12px 0;
+        }
+        
+        .subscription-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 14px;
+        }
+        
+        .payment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        
+        .payment-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .payment-option:hover {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: var(--primary);
+        }
+        
+        .payment-icon {
+            margin-right: 12px;
+            font-size: 20px;
+            color: var(--primary);
+        }
+        
+        /* Trial Info */
+        .trial-info {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.15) 0%, rgba(51, 51, 51, 0.15) 50%, rgba(255, 255, 255, 0.15) 100%);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 12px 0;
+            border-left: 4px solid #ffffff;
+        }
+        
+        .trial-info h4 {
+            color: #ffffff;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .trial-progress {
+            height: 6px;
+            background: var(--darker);
+            border-radius: 4px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        
+        .trial-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #000000 0%, #333333 50%, #ffffff 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .trial-days {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        /* Enhanced Settings Section for Mobile */
+        .settings-section {
+            text-align: left;
+        }
+        
+        .settings-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 15px 0;
+            box-shadow: var(--shadow);
+        }
+        
+        .settings-group {
+            margin-bottom: 20px;
+        }
+        
+        .settings-group h3 {
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        
+        .language-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .language-option {
+            padding: 12px;
+            background: var(--darker);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .language-option.active {
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .language-option:hover {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        /* Enhanced Results Modal for Mobile */
+        .result-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+        
+        .result-content {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid var(--primary);
+            max-width: 350px;
+            width: 100%;
+            box-shadow: var(--shadow);
+        }
+        
+        .result-success {
+            border-color: var(--success);
+        }
+        
+        .result-error {
+            border-color: var(--danger);
+        }
+        
+        .result-icon {
+            font-size: 42px;
+            margin-bottom: 12px;
+        }
+        
+        /* Enhanced New Course Modal for Mobile */
+        .new-course-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+        
+        .new-course-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid var(--primary);
+            max-width: 400px;
+            width: 100%;
+            box-shadow: var(--shadow);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--card-border);
+            border-radius: 10px;
+            background: var(--darker);
+            color: var(--text-primary);
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        
+        .form-actions .btn {
+            flex: 1;
+            margin: 0;
+        }
+        
+        /* Enhanced Camera Permission for Mobile */
+        .camera-permission {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 20px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .camera-permission i {
+            font-size: 42px;
+            margin-bottom: 12px;
+            color: var(--primary);
+        }
+        
+        .enable-camera-text {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 12px 0;
+            line-height: 1.2;
+            text-align: center;
+        }
+        
+        .enable-camera-text span {
+            display: block;
+        }
+        
+        .camera-instruction {
+            font-size: 13px;
+            margin: 8px 0 15px;
+            color: var(--text-secondary);
+        }
+        
+        /* Enhanced Empty State for Mobile */
+        .empty-state {
+            text-align: center;
+            padding: 30px 15px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state i {
+            font-size: 56px;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+        
+        /* Payment Form Styles */
+        .payment-form {
+            margin-top: 15px;
+        }
+        
+        .card-element {
+            padding: 12px;
+            border: 2px solid var(--card-border);
+            border-radius: 10px;
+            background: var(--darker);
+            margin-bottom: 15px;
+        }
+        
+        .card-errors {
+            color: var(--danger);
+            font-size: 13px;
+            margin-bottom: 10px;
+            min-height: 20px;
+        }
+        
+        /* Paystack Button */
+        .paystack-button {
+            background: #00A859;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .paystack-button:hover {
+            background: #008F4C;
+            transform: translateY(-2px);
+        }
+        
+        /* Enhanced Responsive Design */
+        @media (max-width: 768px) {
+            .attendance-table {
+                font-size: 11px;
+            }
+            
+            .attendance-table th,
+            .attendance-table td {
+                padding: 8px 6px;
+            }
+            
+            .subscription-banner,
+            .trial-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .banner-content {
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 { font-size: 18px; }
+            .camera-container { height: 250px; max-width: 100%; }
+            .btn { width: 100%; margin: 0; padding: 12px; }
+            .language-options { grid-template-columns: 1fr; }
+            .form-actions { flex-direction: column; }
+            .history-title-section { flex-direction: column; gap: 8px; align-items: flex-start; }
+            .history-filters { flex-direction: column; }
+            .attendance-table {
+                font-size: 10px;
+            }
+            .attendance-table th,
+            .attendance-table td {
+                padding: 6px 4px;
+            }
+            .new-course-content { padding: 15px; }
+            .result-content { padding: 20px; }
+        }
+
+        @media (max-width: 380px) {
+            .header { padding: 12px; }
+            .header h1 { font-size: 16px; }
+            .student-info { font-size: 11px; }
+            .theme-toggle, .settings-toggle, .new-course-toggle { 
+                width: 36px; height: 36px; font-size: 14px; 
+            }
+        }
+
+        /* Improved touch scrolling */
+        .attendance-table-container {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Better button touch targets */
+        .btn, .nav-item, .theme-toggle, .settings-toggle, .new-course-toggle {
+            min-height: 44px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Enhanced Header for Mobile -->
+        <div class="header">
+            <div class="header-content">
+                <h1 id="headerTitle">🎓 SmartTendance</h1>
+                <div class="student-info">
+                    <span id="studentName">John Smith</span> • 
+                    <span id="studentId">STU1001</span>
+                </div>
+            </div>
+            <div class="header-controls">
+                <button class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="new-course-toggle" onclick="showNewCourseModal()">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Trial Info Banner - ONLY ONE BANNER NOW -->
+        <div id="trialBanner" class="trial-banner" style="display: none;">
+            <div class="banner-content">
+                <h3><i class="fas fa-clock"></i> <span id="freeTrialText">Free Trial Active</span></h3>
+                <p><span id="trialDaysText">You have</span> <span id="trialDaysLeft">7</span> <span id="daysLeftText">days left in your free trial</span></p>
+                <div class="trial-progress">
+                    <div id="trialProgressBar" class="trial-progress-bar" style="width: 50%"></div>
+                </div>
+                <div class="trial-days">
+                    <span id="day1Text">Day 1</span>
+                    <span id="trialEndDate">Day 7</span>
+                </div>
+            </div>
+            <button class="btn btn-small" onclick="switchTab('subscription')">
+                <i class="fas fa-crown"></i> <span id="subscribeNowText">Subscribe Now</span>
+            </button>
+        </div>
+        
+        <!-- Scanner Tab -->
+        <div id="scanner" class="tab-content active">
+            <div class="scanner-section">
+                <h2 id="scanTitle">Scan QR Code</h2>
+                <p id="scanDescription" style="color: var(--text-secondary); margin: 8px 0 12px;">Point your camera at the professor's QR code</p>
+                
+                <div class="scanner-box">
+                    <div class="camera-container">
+                        <video id="video" playsinline autoplay></video>
+                        <div class="scan-overlay">
+                            <div class="scan-line"></div>
+                        </div>
+                        <div id="cameraPermission" class="camera-permission" style="display: none;">
+                            <i class="fas fa-camera"></i>
+                            <div class="enable-camera-text">
+                                <span id="enableCameraText1">Enable</span>
+                                <span id="enableCameraText2">Camera</span>
+                            </div>
+                            <p class="camera-instruction" id="cameraInstructionText">Camera access is required to scan QR codes</p>
+                            <button class="btn" onclick="startScanner()" style="margin-top: 15px;">
+                                <i class="fas fa-play"></i> <span id="enableCameraBtnText">Enable Camera</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="scanner-controls">
+                        <button class="btn" onclick="stopScanner()" id="stopBtn">
+                            <i class="fas fa-stop"></i> <span id="stopScannerText">Stop Scanner</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="color: var(--text-secondary); font-size: 11px; margin-top: 15px;">
+                    <i class="fas fa-lightbulb"></i> <span id="cameraTipsText">Tips: Ensure good lighting and hold steady for 2 seconds</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- History Tab -->
+        <div id="history" class="tab-content">
+            <div class="history-header">
+                <div class="history-title-section">
+                    <h2 id="historyTitle">Attendance History</h2>
+                </div>
+                <p id="historyDescription" style="color: var(--text-secondary); font-size: 13px;">Your complete attendance records</p>
+                
+                <!-- Course Filter -->
+                <div class="history-filters">
+                    <select id="courseFilter" class="filter-select" onchange="filterAttendanceHistory()">
+                        <option value="" id="allCoursesOption">All Courses</option>
+                        <!-- Course options will be loaded here -->
+                    </select>
+                    <select id="statusFilter" class="filter-select" onchange="filterAttendanceHistory()">
+                        <option value="" id="allStatusOption">All Status</option>
+                        <option value="present" id="presentOption">Present</option>
+                        <option value="absent" id="absentOption">Absent</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Summary Table -->
+            <div class="summary-section">
+                <h3 id="summaryTitle">Attendance Summary</h3>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th id="courseCodeHeader">Course Code</th>
+                            <th id="courseNameHeader">Course Name</th>
+                            <th id="attendedHeader">Attended</th>
+                            <th id="totalHeader">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryTableBody">
+                        <!-- Summary rows will be generated here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Enhanced Tabular Attendance History for Mobile -->
+            <div class="attendance-table-container">
+                <table class="attendance-table" id="attendanceTable">
+                    <thead>
+                        <tr>
+                            <th id="tableCourseCodeHeader">Course Code</th>
+                            <th id="tableCourseNameHeader">Course Name</th>
+                            <th id="dateHeader">Date</th>
+                            <th id="timeHeader">Time</th>
+                            <th id="roomHeader">Room</th>
+                            <th id="statusHeader">Status</th>
+                            <th class="action-cell" id="actionHeader">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                        <!-- Attendance records will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Subscription Tab -->
+        <div id="subscription" class="tab-content">
+            <h2 id="subscriptionTitle">Semester Subscription</h2>
+            <p id="subscriptionDescription" style="color: var(--text-secondary); margin-bottom: 15px; font-size: 13px;">Manage your subscription and payment methods</p>
+            
+            <div class="subscription-card">
+                <h3><i class="fas fa-crown"></i> <span id="currentPlanText">Current Plan</span></h3>
+                
+                <div class="subscription-info">
+                    <div class="subscription-row">
+                        <span id="planLabel">Plan:</span>
+                        <span><strong id="planValue">Student Access</strong></span>
+                    </div>
+                    <div class="subscription-row">
+                        <span id="priceLabel">Price:</span>
+                        <span><strong id="priceValue">$1 / 4 months</strong></span>
+                    </div>
+                    <div class="subscription-row">
+                        <span id="statusLabel">Status:</span>
+                        <span id="subscriptionStatus" style="color: var(--primary);"><strong id="statusValue">Active (Trial - 7 days left)</strong></span>
+                    </div>
+                    <div class="subscription-row">
+                        <span id="expiresLabel">Expires:</span>
+                        <span id="subscriptionExpiry"><strong id="expiresValue">10/24/2025</strong></span>
+                    </div>
+                </div>
+                
+                <!-- Trial Information - REMOVED DUPLICATE TRIAL INFO -->
+                
+                <h4 style="margin-top: 15px;" id="paymentMethodsTitle">Payment Methods</h4>
+                <div class="payment-options">
+                    <div class="payment-option" onclick="showPaymentForm('card')">
+                        <div class="payment-icon"><i class="fas fa-credit-card"></i></div>
+                        <div>
+                            <div><strong id="payWithCardText">Pay with Card</strong></div>
+                            <div style="font-size: 11px; color: var(--text-secondary);" id="cardDescriptionText">Visa, Mastercard, American Express</div>
+                        </div>
+                    </div>
+                    <div class="payment-option" onclick="showPaymentForm('paystack')">
+                        <div class="payment-icon"><i class="fas fa-university"></i></div>
+                        <div>
+                            <div><strong id="payWithPaystackText">Pay with Paystack</strong></div>
+                            <div style="font-size: 11px; color: var(--text-secondary);" id="paystackDescriptionText">Secure Paystack payment (Cards, Bank Transfer, USSD)</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 15px; font-size: 11px; color: var(--text-secondary);">
+                    <i class="fas fa-shield-alt"></i> <span id="securePaymentText">Secure Payment Powered by Stripe & Paystack</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="settings-section">
+                <h2 id="settingsTitle">Settings</h2>
+                <p id="settingsDescription" style="color: var(--text-secondary); margin-bottom: 15px; font-size: 13px;">Customize your app experience</p>
+                
+                <div class="settings-card">
+                    <div class="settings-group">
+                        <h3 id="languageTitle">Language</h3>
+                        <div class="language-options">
+                            <div class="language-option active" data-lang="en">
+                                English
+                            </div>
+                            <div class="language-option" data-lang="es">
+                                Spanish
+                            </div>
+                            <div class="language-option" data-lang="fr">
+                                French
+                            </div>
+                            <div class="language-option" data-lang="ar">
+                                Arabic
+                            </div>
+                            <div class="language-option" data-lang="zh">
+                                Chinese
+                            </div>
+                            <div class="language-option" data-lang="hi">
+                                Hindi
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Bottom Navigation -->
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('scanner')">
+            <i class="fas fa-qrcode"></i>
+            <span class="nav-label" id="scanNavLabel">Scan</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('history')">
+            <i class="fas fa-history"></i>
+            <span class="nav-label" id="historyNavLabel">History</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('subscription')">
+            <i class="fas fa-crown"></i>
+            <span class="nav-label" id="premiumNavLabel">Premium</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('settings')">
+            <i class="fas fa-cog"></i>
+            <span class="nav-label" id="settingsNavLabel">Settings</span>
+        </button>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="result-modal" id="resultModal" style="display: none;">
+        <div class="result-content" id="resultContent">
+            <div class="result-icon" id="resultIcon">✅</div>
+            <h3 id="resultTitle">Attendance Recorded!</h3>
+            <p id="resultMessage" style="margin: 12px 0; font-size: 14px;"></p>
+            <button class="btn" onclick="closeResult()">
+                <span id="continueBtnText">Continue</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- New Course Modal -->
+    <div class="new-course-modal" id="newCourseModal" style="display: none;">
+        <div class="new-course-content">
+            <h2><i class="fas fa-plus"></i> <span id="addCourseTitle">Add Course</span></h2>
+            <p style="color: var(--text-secondary); margin: 8px 0 15px; font-size: 13px;" id="addCourseDescription">Add a course to track attendance</p>
+            
+            <div class="form-group">
+                <label for="courseCode" id="courseCodeLabel">Course Code</label>
+                <input type="text" id="courseCode" placeholder="e.g., CS101">
+            </div>
+            
+            <div class="form-group">
+                <label for="courseName" id="courseNameLabel">Course Name</label>
+                <input type="text" id="courseName" placeholder="e.g., Computer Science 101">
+            </div>
+            
+            <div class="form-group">
+                <label for="courseRoom" id="roomLabel">Room</label>
+                <input type="text" id="courseRoom" placeholder="e.g., Room 301">
+            </div>
+            
+            <div class="form-group">
+                <label for="courseLevel" id="academicLevelLabel">Academic Level</label>
+                <select id="courseLevel">
+                    <option value="100">100 Level</option>
+                    <option value="200">200 Level</option>
+                    <option value="300">300 Level</option>
+                    <option value="400">400 Level</option>
+                    <option value="500">500 Level</option>
+                    <option value="600">600 Level</option>
+                    <option value="700">700 Level</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="courseSemester" id="semesterLabel">Semester</label>
+                <select id="courseSemester">
+                    <option value="1" id="firstSemesterOption">First Semester</option>
+                    <option value="2" id="secondSemesterOption">Second Semester</option>
+                </select>
+            </div>
+            
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="closeNewCourseModal()">
+                    <span id="cancelBtnText">Cancel</span>
+                </button>
+                <button class="btn" onclick="addNewCourse()">
+                    <i class="fas fa-save"></i> <span id="saveBtnText">Add Course</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="new-course-modal" id="paymentModal" style="display: none;">
+        <div class="new-course-content">
+            <h2><i class="fas fa-credit-card"></i> <span id="paymentTitle">Complete Payment</span></h2>
+            <p style="color: var(--text-secondary); margin: 8px 0 15px; font-size: 13px;" id="paymentDescription">Complete your subscription payment</p>
+            
+            <div id="cardPaymentForm" class="payment-form" style="display: none;">
+                <div class="form-group">
+                    <label for="cardholderName">Cardholder Name</label>
+                    <input type="text" id="cardholderName" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Card Details</label>
+                    <div id="card-element" class="card-element">
+                        <!-- Stripe Card Element will be inserted here -->
+                    </div>
+                    <div id="card-errors" class="card-errors" role="alert"></div>
+                </div>
+            </div>
+            
+            <div id="paystackPaymentForm" class="payment-form" style="display: none;">
+                <div class="form-group">
+                    <label for="paystackEmail">Email Address</label>
+                    <input type="email" id="paystackEmail" placeholder="your@email.com" value="customer@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="paystackPhone">Phone Number (Optional)</label>
+                    <input type="tel" id="paystackPhone" placeholder="+2348012345678">
+                </div>
+                <button class="paystack-button" onclick="processPaystackPayment()">
+                    <i class="fas fa-lock"></i> Pay $1.00 with Paystack
+                </button>
+                <div style="text-align: center; margin-top: 10px; font-size: 11px; color: var(--text-secondary);">
+                    <i class="fas fa-info-circle"></i> You'll be redirected to Paystack for secure payment
+                </div>
+            </div>
+            
+            <div class="subscription-info" style="margin: 20px 0;">
+                <div class="subscription-row">
+                    <span>Plan:</span>
+                    <span><strong>Student Access</strong></span>
+                </div>
+                <div class="subscription-row">
+                    <span>Duration:</span>
+                    <span><strong>4 Months</strong></span>
+                </div>
+                <div class="subscription-row">
+                    <span>Amount:</span>
+                    <span><strong>$1.00 USD</strong></span>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="closePaymentModal()">
+                    <span id="cancelPaymentText">Cancel</span>
+                </button>
+                <button class="btn" id="payWithCardBtn" onclick="processCardPayment()" style="display: none;">
+                    <i class="fas fa-lock"></i> <span id="payBtnText">Pay $1.00</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Student data
+        let studentCourses = [];
+        let attendanceRecords = [];
+        let videoStream = null;
+        let scanInterval = null;
+        let isScannerActive = false;
+        let currentLanguage = 'en';
+        
+        // Payment variables
+        let stripe = null;
+        let cardElement = null;
+        let currentPaymentMethod = null;
+
+        const TRIAL_DAYS = 7;
+        const SUBSCRIPTION_PRICE = 1.00; // USD
+        const SUBSCRIPTION_DURATION = 4; // Months
+
+        // Paystack Configuration - USING YOUR ACTUAL PAYSTACK PUBLIC KEY
+        const PAYSTACK_PUBLIC_KEY = 'pk_test_1d3a2acb7b7b7fd7a3d58bdcdd0285a582d5f292';
+        
+        // Language translations
+        const translations = {
+            en: {
+                // Header
+                appTitle: "🎓 SmartTendance",
+                studentName: "John Smith",
+                studentId: "STU1001",
+                
+                // Navigation
+                scanNavLabel: "Scan",
+                historyNavLabel: "History",
+                premiumNavLabel: "Premium",
+                settingsNavLabel: "Settings",
+                
+                // Scanner Tab
+                scanTitle: "Scan QR Code",
+                scanDescription: "Point your camera at the professor's QR code",
+                enableCameraText1: "Enable",
+                enableCameraText2: "Camera",
+                cameraInstructionText: "Camera access is required to scan QR codes",
+                enableCameraBtnText: "Enable Camera",
+                stopScannerText: "Stop Scanner",
+                cameraTipsText: "Tips: Ensure good lighting and hold steady for 2 seconds",
+                
+                // History Tab
+                historyTitle: "Attendance History",
+                historyDescription: "Your complete attendance records",
+                allCoursesOption: "All Courses",
+                allStatusOption: "All Status",
+                presentOption: "Present",
+                absentOption: "Absent",
+                summaryTitle: "Attendance Summary",
+                courseCodeHeader: "Course Code",
+                courseNameHeader: "Course Name",
+                attendedHeader: "Attended",
+                totalHeader: "Total",
+                tableCourseCodeHeader: "Course Code",
+                tableCourseNameHeader: "Course Name",
+                dateHeader: "Date",
+                timeHeader: "Time",
+                roomHeader: "Room",
+                statusHeader: "Status",
+                actionHeader: "Action",
+                
+                // Subscription Tab
+                subscriptionTitle: "Semester Subscription",
+                subscriptionDescription: "Manage your subscription and payment methods",
+                currentPlanText: "Current Plan",
+                planLabel: "Plan:",
+                priceLabel: "Price:",
+                statusLabel: "Status:",
+                expiresLabel: "Expires:",
+                freeTrialLabel: "Free Trial",
+                trialDescription: "You're currently on a free trial. Subscribe now to unlock full features after your trial ends.",
+                day1Label: "Day 1",
+                paymentMethodsTitle: "Payment Methods",
+                payWithCardText: "Pay with Card",
+                cardDescriptionText: "Visa, Mastercard, American Express",
+                payWithPaystackText: "Pay with Paystack",
+                paystackDescriptionText: "Secure Paystack payment (Cards, Bank Transfer, USSD)",
+                securePaymentText: "Secure Payment Powered by Stripe & Paystack",
+                
+                // Settings Tab
+                settingsTitle: "Settings",
+                settingsDescription: "Customize your app experience",
+                languageTitle: "Language",
+                
+                // New Course Modal
+                addCourseTitle: "Add Course",
+                addCourseDescription: "Add a course to track attendance",
+                courseCodeLabel: "Course Code",
+                courseNameLabel: "Course Name",
+                roomLabel: "Room",
+                academicLevelLabel: "Academic Level",
+                semesterLabel: "Semester",
+                firstSemesterOption: "First Semester",
+                secondSemesterOption: "Second Semester",
+                cancelBtnText: "Cancel",
+                saveBtnText: "Add Course",
+                
+                // Result Modal
+                continueBtnText: "Continue",
+                
+                // Payment Modal
+                paymentTitle: "Complete Payment",
+                paymentDescription: "Complete your subscription payment",
+                cancelPaymentText: "Cancel",
+                payBtnText: "Pay $1.00",
+                
+                // Banners
+                freeTrialText: "Free Trial Active",
+                trialDaysText: "You have",
+                daysLeftText: "days left in your free trial",
+                day1Text: "Day 1",
+                subscribeNowText: "Subscribe Now",
+                bannerTitle: "Subscription Required",
+                bannerMessage: "Your free trial has ended. Please subscribe to continue using SmartTendance.",
+                
+                // Subscription Info
+                planValue: "Student Access",
+                priceValue: "$1 / 4 months",
+                statusValue: "Active (Trial - 7 days left)",
+                expiresValue: "10/24/2025",
+                trialEnd: "Day 7",
+                trialEndDate: "Day 7",
+                
+                // Empty States
+                noRecordsText: "No attendance records found.",
+                noCoursesText: "No courses added yet. Use the + button to add courses."
+            }
+        };
+
+        // Initialize Stripe (using test key)
+        function initializeStripe() {
+            stripe = Stripe('pk_test_51ExampleTestKey1234567890'); // Replace with your actual Stripe test key
+            const elements = stripe.elements();
+            
+            const style = {
+                base: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                    fontFamily: '"Segoe UI", Arial, sans-serif',
+                    fontSmoothing: 'antialiased',
+                    fontSize: '16px',
+                    '::placeholder': {
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
+                    }
+                },
+                invalid: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--danger'),
+                    iconColor: getComputedStyle(document.documentElement).getPropertyValue('--danger')
+                }
+            };
+            
+            cardElement = elements.create('card', { style: style });
+            cardElement.mount('#card-element');
+            
+            cardElement.on('change', function(event) {
+                const displayError = document.getElementById('card-errors');
+                if (event.error) {
+                    displayError.textContent = event.error.message;
+                } else {
+                    displayError.textContent = '';
+                }
+            });
+        }
+
+        // Initialize app
+        function initApp() {
+            console.log("🚀 Initializing SmartTendance App...");
+            console.log("🔑 Paystack Public Key:", PAYSTACK_PUBLIC_KEY);
+            loadStudentData();
+            initializeSubscription();
+            loadAttendanceHistory();
+            generateSummaryTable();
+            initializeStripe();
+            
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('light-mode');
+                document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
+            }
+            
+            const savedLanguage = localStorage.getItem('language') || 'en';
+            changeLanguage(savedLanguage, false);
+            
+            document.querySelectorAll('.language-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const lang = this.getAttribute('data-lang');
+                    changeLanguage(lang);
+                });
+            });
+            
+            // AUTO-START CAMERA WHEN APP LOADS
+            const video = document.getElementById('video');
+            const cameraPermission = document.getElementById('cameraPermission');
+            
+            // Hide the permission UI and try to start camera automatically
+            cameraPermission.style.display = 'none';
+            video.style.display = 'block';
+            
+            // Auto-start the scanner when app loads
+            if (document.getElementById('scanner').classList.contains('active')) {
+                startScanner();
+            }
+            
+            updateSubscriptionStatus();
+            
+            console.log("✅ App initialized successfully!");
+        }
+
+        // Load student data from localStorage
+        function loadStudentData() {
+            const savedCourses = localStorage.getItem('studentCourses');
+            const savedRecords = localStorage.getItem('attendanceRecords');
+            
+            if (savedCourses) {
+                studentCourses = JSON.parse(savedCourses);
+                console.log(`📚 Loaded ${studentCourses.length} courses from storage`);
+            }
+            
+            if (savedRecords) {
+                attendanceRecords = JSON.parse(savedRecords);
+                console.log(`📊 Loaded ${attendanceRecords.length} attendance records from storage`);
+            }
+        }
+
+        // Save student data to localStorage
+        function saveStudentData() {
+            localStorage.setItem('studentCourses', JSON.stringify(studentCourses));
+            localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+        }
+
+        // Initialize subscription system
+        function initializeSubscription() {
+            if (!localStorage.getItem('subscriptionStartDate')) {
+                const trialStartDate = new Date();
+                localStorage.setItem('subscriptionStartDate', trialStartDate.toISOString());
+                localStorage.setItem('subscriptionType', 'trial');
+                localStorage.setItem('subscriptionStatus', 'active');
+            }
+            updateSubscriptionUI();
+        }
+
+        // Update subscription UI - FIXED: Only one trial banner now
+        function updateSubscriptionUI() {
+            const subscriptionType = localStorage.getItem('subscriptionType');
+            const subscriptionStartDate = new Date(localStorage.getItem('subscriptionStartDate'));
+            
+            if (subscriptionType === 'trial') {
+                const today = new Date();
+                const trialEndDate = new Date(subscriptionStartDate);
+                trialEndDate.setDate(trialEndDate.getDate() + TRIAL_DAYS);
+                
+                const daysLeft = Math.ceil((trialEndDate - today) / (1000 * 60 * 60 * 24));
+                const daysPassed = TRIAL_DAYS - daysLeft;
+                const progressPercentage = (daysPassed / TRIAL_DAYS) * 100;
+                
+                if (daysLeft > 0) {
+                    // Show the single trial banner
+                    document.getElementById('trialBanner').style.display = 'flex';
+                    document.getElementById('trialDaysLeft').textContent = daysLeft;
+                    document.getElementById('trialProgressBar').style.width = `${progressPercentage}%`;
+                    
+                    document.getElementById('statusValue').textContent = `Active (Trial - ${daysLeft} days left)`;
+                    document.getElementById('subscriptionStatus').style.color = 'var(--warning)';
+                    document.getElementById('expiresValue').textContent = trialEndDate.toLocaleDateString();
+                } else {
+                    // Trial expired - show subscription required message in the banner
+                    document.getElementById('trialBanner').style.display = 'flex';
+                    document.getElementById('trialBanner').className = 'subscription-banner expired';
+                    document.getElementById('freeTrialText').textContent = 'Trial Expired';
+                    document.getElementById('trialDaysText').textContent = 'Your free trial has ended';
+                    document.getElementById('trialDaysLeft').style.display = 'none';
+                    document.getElementById('daysLeftText').style.display = 'none';
+                    document.getElementById('trialProgressBar').style.display = 'none';
+                    document.getElementById('trialEndDate').style.display = 'none';
+                    document.getElementById('day1Text').style.display = 'none';
+                    
+                    document.getElementById('stopBtn').disabled = true;
+                    document.getElementById('stopBtn').innerHTML = '<i class="fas fa-lock"></i> Subscription Required';
+                    
+                    document.getElementById('statusValue').textContent = 'Trial Expired';
+                    document.getElementById('subscriptionStatus').style.color = 'var(--danger)';
+                    document.getElementById('expiresValue').textContent = 'Please Subscribe';
+                }
+            } else if (subscriptionType === 'paid') {
+                // Hide the trial banner when paid
+                document.getElementById('trialBanner').style.display = 'none';
+                document.getElementById('statusValue').textContent = 'Active (Paid)';
+                document.getElementById('subscriptionStatus').style.color = 'var(--primary)';
+                const expiry = localStorage.getItem('subscriptionExpiry');
+                document.getElementById('expiresValue').textContent = new Date(expiry).toLocaleDateString();
+            }
+        }
+
+        // Check if user can scan
+        function canUserScan() {
+            const subscriptionType = localStorage.getItem('subscriptionType');
+            const subscriptionStartDate = new Date(localStorage.getItem('subscriptionStartDate'));
+            
+            if (subscriptionType === 'trial') {
+                const today = new Date();
+                const trialEndDate = new Date(subscriptionStartDate);
+                trialEndDate.setDate(trialEndDate.getDate() + TRIAL_DAYS);
+                return today <= trialEndDate;
+            } else if (subscriptionType === 'paid') {
+                return true;
+            }
+            return false;
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLightMode = document.body.classList.contains('light-mode');
+            document.getElementById('themeToggle').innerHTML = isLightMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            localStorage.setItem('darkMode', isLightMode);
+        }
+
+        // Tab navigation
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`.nav-item[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            if (tabName === 'scanner') {
+                // Auto-start camera when switching to scanner tab
+                const cameraPermission = document.getElementById('cameraPermission');
+                const video = document.getElementById('video');
+                
+                cameraPermission.style.display = 'none';
+                video.style.display = 'block';
+                
+                if (!isScannerActive) {
+                    startScanner();
+                }
+            } else {
+                stopScanner();
+            }
+        }
+
+        // Show new course modal
+        function showNewCourseModal() {
+            document.getElementById('newCourseModal').style.display = 'flex';
+            document.getElementById('courseCode').value = '';
+            document.getElementById('courseName').value = '';
+            document.getElementById('courseRoom').value = '';
+            document.getElementById('courseLevel').value = '100';
+            document.getElementById('courseSemester').value = '1';
+        }
+
+        function closeNewCourseModal() {
+            document.getElementById('newCourseModal').style.display = 'none';
+        }
+
+        // Add new course
+        function addNewCourse() {
+            const courseCode = document.getElementById('courseCode').value.trim();
+            const courseName = document.getElementById('courseName').value.trim();
+            const room = document.getElementById('courseRoom').value.trim();
+            const level = document.getElementById('courseLevel').value;
+            const semester = document.getElementById('courseSemester').value;
+            
+            if (!courseCode || !courseName || !room) {
+                showResult('error', 'Missing Information', 'Please fill in all required fields.');
+                return;
+            }
+            
+            if (studentCourses.some(course => course.code === courseCode)) {
+                showResult('error', 'Course Exists', 'This course code is already registered.');
+                return;
+            }
+            
+            const newCourse = {
+                code: courseCode,
+                name: courseName,
+                room: room,
+                level: level,
+                semester: semester,
+                registeredDate: new Date().toISOString()
+            };
+            
+            studentCourses.push(newCourse);
+            saveStudentData();
+            closeNewCourseModal();
+            
+            showResult('success', 'Course Added!', 
+                `${courseCode} - ${courseName}<br>
+                 Level: ${level}<br>
+                 Semester: ${semester}<br>
+                 Room: ${room}`);
+                 
+            generateSummaryTable();
+        }
+
+        // Generate summary table
+        function generateSummaryTable() {
+            const container = document.getElementById('summaryTableBody');
+            const courseFilter = document.getElementById('courseFilter');
+            
+            courseFilter.innerHTML = '<option value="">' + translations[currentLanguage].allCoursesOption + '</option>';
+            studentCourses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course.code;
+                option.textContent = `${course.code} - ${course.name}`;
+                courseFilter.appendChild(option);
+            });
+            
+            if (studentCourses.length === 0) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                            ${translations[currentLanguage].noCoursesText}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            studentCourses.forEach(course => {
+                const courseRecords = attendanceRecords.filter(record => record.courseCode === course.code);
+                const total = courseRecords.length;
+                const present = courseRecords.filter(record => record.status === 'present').length;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${course.code}</td>
+                    <td>${course.name}</td>
+                    <td>${present}</td>
+                    <td>${total}</td>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Load attendance history
+        function loadAttendanceHistory() {
+            const container = document.getElementById('attendanceTableBody');
+            const courseFilter = document.getElementById('courseFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            let filteredRecords = attendanceRecords;
+            
+            if (courseFilter) {
+                filteredRecords = filteredRecords.filter(record => record.courseCode === courseFilter);
+            }
+            
+            if (statusFilter) {
+                filteredRecords = filteredRecords.filter(record => record.status === statusFilter);
+            }
+            
+            if (filteredRecords.length === 0) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                            ${translations[currentLanguage].noRecordsText}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            filteredRecords.forEach(record => {
+                const course = studentCourses.find(c => c.code === record.courseCode);
+                const statusClass = record.status === 'present' ? 'status-present' : 'status-absent';
+                const statusText = record.status === 'present' ? translations[currentLanguage].presentOption : translations[currentLanguage].absentOption;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.courseCode}</td>
+                    <td>${course ? course.name : 'Unknown Course'}</td>
+                    <td>${record.date}</td>
+                    <td>${record.time}</td>
+                    <td>${record.room}</td>
+                    <td class="${statusClass}">${statusText}</td>
+                    <td class="action-cell">
+                        <button class="delete-record-btn" onclick="deleteAttendanceRecord('${record.id}')" title="Delete Record">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Filter attendance history
+        function filterAttendanceHistory() {
+            loadAttendanceHistory();
+        }
+
+        // Delete attendance record
+        function deleteAttendanceRecord(recordId) {
+            if (confirm('Are you sure you want to delete this attendance record?')) {
+                attendanceRecords = attendanceRecords.filter(record => record.id !== recordId);
+                saveStudentData();
+                loadAttendanceHistory();
+                generateSummaryTable();
+                showResult('success', 'Record Deleted', 'Attendance record has been successfully deleted.');
+            }
+        }
+
+        // QR Scanner functionality - AUTO-START
+        async function startScanner() {
+            if (isScannerActive) return;
+            
+            if (!canUserScan()) {
+                showResult('error', 'Subscription Required', 'Please subscribe to continue using the QR scanner feature.');
+                switchTab('subscription');
+                return;
+            }
+            
+            if (studentCourses.length === 0) {
+                showResult('error', 'No Courses', 'Please add your courses first using the + button.');
+                return;
+            }
+            
+            const video = document.getElementById('video');
+            const stopBtn = document.getElementById('stopBtn');
+            const cameraPermission = document.getElementById('cameraPermission');
+            
+            try {
+                const currentStream = video.srcObject;
+                if (currentStream) {
+                    // Camera is already running
+                    cameraPermission.style.display = 'none';
+                    video.style.display = 'block';
+                    stopBtn.disabled = false;
+                    stopBtn.innerHTML = '<i class="fas fa-stop"></i> ' + translations[currentLanguage].stopScannerText;
+                    scanInterval = setInterval(scanQRCode, 500);
+                    isScannerActive = true;
+                    return;
+                }
+                
+                let constraints = { 
+                    video: { 
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                };
+                
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = videoStream;
+                
+                video.onloadedmetadata = function() {
+                    cameraPermission.style.display = 'none';
+                    video.style.display = 'block';
+                    
+                    stopBtn.disabled = false;
+                    stopBtn.innerHTML = '<i class="fas fa-stop"></i> ' + translations[currentLanguage].stopScannerText;
+                    
+                    scanInterval = setInterval(scanQRCode, 500);
+                    isScannerActive = true;
+                    
+                    console.log("✅ Camera started successfully");
+                };
+                
+                video.onerror = function() {
+                    console.error("Video error:", video.error);
+                    showResult('error', 'Camera Error', 'Failed to start camera. Please try again.');
+                    stopScanner();
+                };
+                
+            } catch (err) {
+                console.error('Camera access error:', err);
+                // Show permission UI only if camera fails
+                cameraPermission.style.display = 'flex';
+                video.style.display = 'none';
+                
+                let errorMessage = 'Unable to access camera. ';
+                
+                if (err.name === 'NotAllowedError') {
+                    errorMessage += 'Please allow camera access in your browser settings.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage += 'No camera found on your device.';
+                } else if (err.name === 'NotSupportedError') {
+                    errorMessage += 'Camera not supported on this device.';
+                } else {
+                    errorMessage += 'Please check permissions and try again.';
+                }
+                
+                showResult('error', 'Camera Error', errorMessage);
+            }
+        }
+
+        function stopScanner() {
+            if (!isScannerActive) return;
+            
+            const video = document.getElementById('video');
+            const stopBtn = document.getElementById('stopBtn');
+            const cameraPermission = document.getElementById('cameraPermission');
+            
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                videoStream = null;
+            }
+            
+            if (scanInterval) {
+                clearInterval(scanInterval);
+                scanInterval = null;
+            }
+            
+            cameraPermission.style.display = 'none';
+            video.style.display = 'block';
+            
+            stopBtn.disabled = true;
+            stopBtn.innerHTML = '<i class="fas fa-play"></i> ' + translations[currentLanguage].enableCameraBtnText;
+            
+            isScannerActive = false;
+            console.log("🛑 Scanner stopped");
+        }
+
+        function scanQRCode() {
+            const video = document.getElementById('video');
+            
+            if (!video || video.readyState !== video.HAVE_ENOUGH_DATA || !isScannerActive) {
+                return;
+            }
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    console.log("QR Code detected:", code.data);
+                    processQRCode(code.data);
+                }
+            } catch (err) {
+                console.error("QR scanning error:", err);
+            }
+        }
+
+        // FIXED: QR CODE PROCESSING FUNCTION - NOW SAVES TO LECTURER'S SHARED DATA
+        function processQRCode(qrData) {
+            try {
+                const data = JSON.parse(qrData);
+                
+                if (data.type === 'attendance') {
+                    stopScanner();
+                    
+                    const courseExists = studentCourses.some(course => 
+                        course.code.toLowerCase() === data.courseCode.toLowerCase()
+                    );
+                    
+                    if (!courseExists) {
+                        showResult('error', 'Course Not Found', 
+                            `Course "${data.courseCode}" is not in your registered courses.<br><br>
+                             Please add this course first using the + button.`);
+                        return;
+                    }
+                    
+                    const today = new Date().toISOString().split('T')[0];
+                    const alreadyRecorded = attendanceRecords.some(record => 
+                        record.courseCode.toLowerCase() === data.courseCode.toLowerCase() && 
+                        record.date === today
+                    );
+                    
+                    if (alreadyRecorded) {
+                        showResult('info', 'Already Recorded', 
+                            `Attendance for ${data.courseCode} has already been recorded today.`);
+                        return;
+                    }
+                    
+                    setTimeout(() => {
+                        // Get student info from the header display
+                        const studentId = document.getElementById('studentId').textContent;
+                        const studentName = document.getElementById('studentName').textContent;
+                        
+                        const newRecord = {
+                            id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                            studentId: studentId,
+                            studentName: studentName,
+                            courseCode: data.courseCode,
+                            date: today,
+                            time: new Date().toLocaleTimeString(),
+                            status: 'present',
+                            room: data.room || 'Unknown',
+                            timestamp: new Date().getTime()
+                        };
+                        
+                        // Save to STUDENT'S OWN storage
+                        attendanceRecords.unshift(newRecord);
+                        saveStudentData();
+                        
+                        // CRITICAL FIX: Save to LECTURER'S shared data location
+                        saveToLecturerSharedData(newRecord);
+                        
+                        loadAttendanceHistory();
+                        generateSummaryTable();
+                        
+                        const course = studentCourses.find(c => c.code.toLowerCase() === data.courseCode.toLowerCase());
+                        
+                        showResult('success', 'Attendance Recorded!', 
+                            `Course: ${data.courseCode} - ${course ? course.name : 'Unknown'}<br>
+                             Student: ${studentName} (${studentId})<br>
+                             Time: ${newRecord.time}<br>
+                             Status: ✅ ${translations[currentLanguage].presentOption}<br><br>
+                             <small>✅ Saved to lecturer's records</small>`);
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error("QR processing error:", err);
+                showResult('error', 'Invalid QR Code', 'Please scan a valid attendance QR code.');
+            }
+        }
+
+        // NEW FUNCTION: Save to lecturer's shared data
+        function saveToLecturerSharedData(record) {
+            try {
+                // Get or initialize shared data with lecturer app
+                let sharedData = JSON.parse(localStorage.getItem('smartTendanceShared')) || {
+                    students: [],
+                    attendanceRecords: [],
+                    lectures: [],
+                    schedules: [],
+                    lastUpdate: new Date().toISOString()
+                };
+                
+                // Check if student exists in shared data
+                let student = sharedData.students.find(s => s.id === record.studentId);
+                
+                if (!student) {
+                    // Create student record in shared data
+                    student = {
+                        id: record.studentId,
+                        name: record.studentName,
+                        email: `${record.studentId.toLowerCase()}@student.edu`
+                    };
+                    sharedData.students.push(student);
+                }
+                
+                // Check if this record already exists to avoid duplicates
+                const recordExists = sharedData.attendanceRecords.some(existingRecord => 
+                    existingRecord.studentId === record.studentId &&
+                    existingRecord.courseCode === record.courseCode &&
+                    existingRecord.date === record.date
+                );
+                
+                if (!recordExists) {
+                    // Create attendance record for lecturer
+                    const lecturerRecord = {
+                        studentId: record.studentId,
+                        studentName: record.studentName,
+                        courseCode: record.courseCode,
+                        courseName: record.courseCode, // You might want to map this to actual course names
+                        date: record.date,
+                        time: record.time,
+                        status: 'present',
+                        room: record.room,
+                        timestamp: new Date().toISOString(),
+                        lectureId: record.id
+                    };
+                    
+                    sharedData.attendanceRecords.push(lecturerRecord);
+                    sharedData.lastUpdate = new Date().toISOString();
+                    
+                    // Save back to localStorage
+                    localStorage.setItem('smartTendanceShared', JSON.stringify(sharedData));
+                    
+                    console.log("✅ Saved to lecturer shared data:", lecturerRecord);
+                } else {
+                    console.log("📝 Record already exists in lecturer data");
+                }
+                
+            } catch (error) {
+                console.error("❌ Error saving to lecturer shared data:", error);
+            }
+        }
+
+        // Payment functions
+        function showPaymentForm(method) {
+            currentPaymentMethod = method;
+            document.getElementById('paymentModal').style.display = 'flex';
+            
+            // Reset forms
+            document.getElementById('cardPaymentForm').style.display = 'none';
+            document.getElementById('paystackPaymentForm').style.display = 'none';
+            document.getElementById('payWithCardBtn').style.display = 'none';
+            
+            if (method === 'card') {
+                document.getElementById('cardPaymentForm').style.display = 'block';
+                document.getElementById('payWithCardBtn').style.display = 'block';
+            } else if (method === 'paystack') {
+                document.getElementById('paystackPaymentForm').style.display = 'block';
+            }
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').style.display = 'none';
+            currentPaymentMethod = null;
+        }
+
+        async function processCardPayment() {
+            const cardholderName = document.getElementById('cardholderName').value.trim();
+            
+            if (!cardholderName) {
+                showResult('error', 'Missing Information', 'Please enter cardholder name.');
+                return;
+            }
+            
+            showResult('processing', 'Processing Payment', 'Please wait while we process your payment...');
+            
+            try {
+                // Simulate payment processing
+                const { paymentIntent, error } = await createPaymentIntent();
+                
+                if (error) {
+                    throw new Error(error);
+                }
+                
+                const { paymentError } = await stripe.confirmCardPayment(paymentIntent.client_secret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            name: cardholderName,
+                        },
+                    }
+                });
+                
+                if (paymentError) {
+                    throw new Error(paymentError.message);
+                }
+                
+                processSuccessfulPayment('card', paymentIntent.id);
+                
+            } catch (error) {
+                console.error('Payment error:', error);
+                showResult('error', 'Payment Failed', error.message || 'There was an error processing your payment. Please try again.');
+            }
+        }
+
+        // Paystack Payment Processing
+        function processPaystackPayment() {
+            const email = document.getElementById('paystackEmail').value.trim();
+            const phone = document.getElementById('paystackPhone').value.trim();
+            
+            if (!email) {
+                showResult('error', 'Missing Information', 'Please enter your email address.');
+                return;
+            }
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showResult('error', 'Invalid Email', 'Please enter a valid email address.');
+                return;
+            }
+
+            // Check if Paystack key is configured
+            if (!PAYSTACK_PUBLIC_KEY || PAYSTACK_PUBLIC_KEY === 'pk_test_your_paystack_public_key_here') {
+                showResult('error', 'Payment Configuration', 'Paystack payment is not configured. Please contact support.');
+                return;
+            }
+
+            // Generate unique reference
+            const transactionRef = 'TXN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            console.log('Initializing Paystack payment with key:', PAYSTACK_PUBLIC_KEY);
+            
+            try {
+                // Initialize Paystack
+                const handler = PaystackPop.setup({
+                    key: PAYSTACK_PUBLIC_KEY,
+                    email: email,
+                    amount: SUBSCRIPTION_PRICE * 100, // Convert to kobo/cents
+                    currency: 'USD',
+                    ref: transactionRef,
+                    metadata: {
+                        custom_fields: [
+                            {
+                                display_name: "Student Name",
+                                variable_name: "student_name",
+                                value: document.getElementById('studentName').textContent
+                            },
+                            {
+                                display_name: "Student ID",
+                                variable_name: "student_id", 
+                                value: document.getElementById('studentId').textContent
+                            },
+                            {
+                                display_name: "Product",
+                                variable_name: "product",
+                                value: "SmartTendance Subscription"
+                            }
+                        ]
+                    },
+                    callback: function(response) {
+                        // Payment was successful
+                        console.log('Paystack payment successful:', response);
+                        
+                        // Verify payment (in production, this would call your backend)
+                        verifyPaystackPayment(response.reference).then(verified => {
+                            if (verified) {
+                                processSuccessfulPayment('paystack', response.reference);
+                                closePaymentModal();
+                            } else {
+                                showResult('error', 'Payment Verification Failed', 'We could not verify your payment. Please contact support.');
+                            }
+                        });
+                    },
+                    onClose: function() {
+                        console.log('Paystack payment window closed');
+                    },
+                    onBankTransfer: function(trx) {
+                        console.log('Bank transfer initiated:', trx);
+                    }
+                });
+                
+                // Open Paystack payment modal
+                handler.openIframe();
+                
+            } catch (error) {
+                console.error('Paystack initialization error:', error);
+                showResult('error', 'Payment Error', 'Failed to initialize payment. Please try again.');
+            }
+        }
+
+        // Verify Paystack payment (simulated - in production, call your backend)
+        async function verifyPaystackPayment(reference) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Simulate successful verification
+                    console.log(`Verifying payment reference: ${reference}`);
+                    resolve(true);
+                }, 2000);
+            });
+        }
+
+        // Simulate server-side payment intent creation
+        async function createPaymentIntent() {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve({
+                        paymentIntent: {
+                            id: 'pi_' + Math.random().toString(36).substr(2, 14),
+                            client_secret: 'pi_' + Math.random().toString(36).substr(2, 14) + '_secret_' + Math.random().toString(36).substr(2, 24),
+                            status: 'succeeded'
+                        },
+                        error: null
+                    });
+                }, 1500);
+            });
+        }
+
+        function processSuccessfulPayment(method, paymentId) {
+            closePaymentModal();
+            
+            const expiryDate = new Date();
+            expiryDate.setMonth(expiryDate.getMonth() + SUBSCRIPTION_DURATION);
+            
+            localStorage.setItem('subscriptionType', 'paid');
+            localStorage.setItem('subscriptionStatus', 'active');
+            localStorage.setItem('subscriptionExpiry', expiryDate.toISOString());
+            localStorage.setItem('subscriptionPaid', 'true');
+            localStorage.setItem('lastPaymentMethod', method);
+            localStorage.setItem('lastPaymentId', paymentId);
+            localStorage.setItem('lastPaymentDate', new Date().toISOString());
+            
+            updateSubscriptionStatus();
+            updateSubscriptionUI();
+            
+            showResult('success', 'Payment Successful!', 
+                `Thank you for your payment!<br>
+                 Your subscription is now active until ${expiryDate.toLocaleDateString()}.<br>
+                 Payment ID: ${paymentId}`);
+        }
+
+        function updateSubscriptionStatus() {
+            // Handled in updateSubscriptionUI
+        }
+
+        // Language change function
+        function changeLanguage(lang, showMessage = true) {
+            document.querySelectorAll('.language-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            
+            document.querySelector(`.language-option[data-lang="${lang}"]`).classList.add('active');
+            
+            currentLanguage = lang;
+            localStorage.setItem('language', lang);
+            
+            updateTextContent();
+            
+            if (showMessage) {
+                showResult('success', 'Language Changed', `App language has been set to ${getLanguageName(lang)}`);
+            }
+        }
+
+        function updateTextContent() {
+            const t = translations[currentLanguage];
+            
+            Object.keys(t).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.textContent = t[key];
+                }
+            });
+            
+            generateSummaryTable();
+            loadAttendanceHistory();
+            updateSubscriptionUI();
+        }
+
+        function getLanguageName(code) {
+            const languages = {
+                'en': 'English',
+                'es': 'Spanish', 
+                'fr': 'French',
+                'ar': 'Arabic',
+                'zh': 'Chinese',
+                'hi': 'Hindi'
+            };
+            return languages[code] || 'Unknown';
+        }
+
+        // Result modal functions
+        function showResult(type, title, message) {
+            const modal = document.getElementById('resultModal');
+            const content = document.getElementById('resultContent');
+            const icon = document.getElementById('resultIcon');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+            
+            content.className = `result-content ${type === 'success' ? 'result-success' : type === 'error' ? 'result-error' : ''}`;
+            
+            if (type === 'processing') {
+                icon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            } else {
+                icon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            }
+            
+            resultTitle.textContent = title;
+            resultMessage.innerHTML = message;
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeResult() {
+            document.getElementById('resultModal').style.display = 'none';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initApp);
+        
+        // Theme toggle
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    </script>
+</body>
+</html>
